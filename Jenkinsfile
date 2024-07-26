@@ -13,4 +13,31 @@ pipeline {
         IMAGE_NAME = "${DOCKER_USER}" + "/" + "${APP_NAME}"
         IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
     }
+    stages {
+	stage('clean workspace') {
+	   steps {
+	        cleanWs()
+	   }
+	}
+        stage('Checkout from Git'){
+	    steps {
+		git branch: 'main', url: 'https://github.com/solomond22/a-reddit-clone.git'
+	    }
+	}
+	stage('SonarQube Analysis'){
+	    steps {
+	       withSonarQubeEnv('SonarQube-Server') {
+                    sh '''$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=reddit-clone-ci \
+                    -Dsonar.projectKey=reddit-clone-ci'''
+	    }
+	}
+    }
+         stage('Quality Gates') {
+	    steps {
+	        script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonarqube-token'
+                }
+	    }
+	 }
+	    
 }
